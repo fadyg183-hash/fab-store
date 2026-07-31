@@ -119,7 +119,7 @@ useEffect(() => {
     );
 
     
-     const cartSound = new Audio("/sounds/cart-popp.mp3");
+     const cartSound = new Audio("/sounds/audiomass-output.mp3");
 cartSound.volume = 0.70;
 cartSound.play().catch(() => {});
 
