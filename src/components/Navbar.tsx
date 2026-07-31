@@ -118,14 +118,15 @@ useEffect(() => {
       }
     );
 
-    animation.onfinish = () => {
-      flyingImage.remove();
+    
+     const cartSound = new Audio("/sounds/cart-popp.mp3");
+cartSound.volume = 0.70;
+cartSound.play().catch(() => {});
 
-      const cartSound = new Audio("/sounds/cart-popp.mp3");
-      cartSound.volume = 0.70;
-      cartSound.play().catch(() => {});
-    };
-  }
+animation.onfinish = () => {
+  flyingImage.remove();
+};
+} 
 
   window.addEventListener(
     "cart:item-added",
@@ -138,6 +139,7 @@ useEffect(() => {
       handleCartItemAdded
     );
   };
+
 }, []);
 
   useEffect(() => {
