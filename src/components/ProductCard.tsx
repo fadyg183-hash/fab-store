@@ -82,11 +82,71 @@ return ( <div className="group overflow-hidden rounded-3xl border border-gray-20
 
     {/* Add to Cart */}
     <button
-      onClick={() => {
-        if (isAvailable) {
-          addToCart(product);
-        }
-      }}
+      onClick={(e) => {
+  if (!isAvailable) return;
+
+  addToCart(product);
+
+  window.dispatchEvent(
+    new CustomEvent("cart:item-added", {
+      detail: {
+        image: product.image,
+        sourceElement: e.currentTarget,
+      },
+    })
+  );
+
+  // هزة بسيطة للموبايل
+  if ("vibrate" in navigator) {
+    navigator.vibrate(40);
+  }
+
+  // صوت خفيف
+  try {
+    const AudioContext =
+      window.AudioContext ||
+      (window as any).webkitAudioContext;
+
+    if (AudioContext) {
+      const audioContext = new AudioContext();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(
+        700,
+        audioContext.currentTime
+      );
+
+      gainNode.gain.setValueAtTime(
+        0.0001,
+        audioContext.currentTime
+      );
+
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.06,
+        audioContext.currentTime + 0.01
+      );
+
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.0001,
+        audioContext.currentTime + 0.12
+      );
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.12);
+
+      oscillator.onended = () => {
+        audioContext.close();
+      };
+    }
+  } catch {
+    // لو الصوت غير مدعوم، الإضافة للسلة تستمر طبيعي
+  }
+}}
       disabled={!isAvailable}
       className={`mt-7 w-full rounded-2xl py-4 text-lg font-bold transition duration-300 ${
         isAvailable

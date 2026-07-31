@@ -3,11 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Navbar() {
   const { cart } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [cartBounce, setCartBounce] = useState(false);
 
   const totalItems = cart.reduce(
     (total, item) => total + item.quantity,
@@ -18,21 +19,148 @@ export default function Navbar() {
     setMenuOpen(false);
   }
 
-  function scrollToSection(id: string) {
-    setMenuOpen(false);
+function scrollToSection(id: string) {
+  setMenuOpen(false);
 
-    if (window.location.pathname !== "/") {
-      window.location.href = "/#" + id;
-      return;
-    }
+  setTimeout(() => {
+    document.getElementById(id)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, 100);
+}
+    
+useEffect(() => {
+  function handleCartItemAdded(event: Event) {
+    const customEvent = event as CustomEvent<{
+      image: string;
+      sourceElement: HTMLElement;
+    }>;
+
+    const sourceElement = customEvent.detail?.sourceElement;
+    const image = customEvent.detail?.image;
+
+    setCartBounce(true);
 
     setTimeout(() => {
-      document.getElementById(id)?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 100);
+      setCartBounce(false);
+    }, 600);
+
+    if (!sourceElement || !image) return;
+
+    const cartButtons = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        "[data-cart-button]"
+      )
+    );
+
+    const target = cartButtons.find((button) => {
+      const rect = button.getBoundingClientRect();
+
+      return rect.width > 0 && rect.height > 0;
+    });
+
+    if (!target) return;
+
+    const sourceRect = sourceElement.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+
+    const flyingImage = document.createElement("img");
+
+    flyingImage.src = image;
+    flyingImage.alt = "";
+
+    Object.assign(flyingImage.style, {
+      position: "fixed",
+      left: `${sourceRect.left}px`,
+      top: `${sourceRect.top}px`,
+      width: "70px",
+      height: "70px",
+      objectFit: "cover",
+      borderRadius: "16px",
+      zIndex: "999999",
+      pointerEvents: "none",
+      boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+    });
+
+    document.body.appendChild(flyingImage);
+
+    const x =
+      targetRect.left +
+      targetRect.width / 2 -
+      sourceRect.left -
+      35;
+
+    const y =
+      targetRect.top +
+      targetRect.height / 2 -
+      sourceRect.top -
+      35;
+
+    const animation = flyingImage.animate(
+      [
+        {
+          transform: "translate(0, 0) scale(1)",
+          opacity: 1,
+        },
+        {
+          transform: `translate(${x * 0.5}px, ${y * 0.5}px) scale(0.7)`,
+          opacity: 0.9,
+        },
+        {
+          transform: `translate(${x}px, ${y}px) scale(0.15)`,
+          opacity: 0,
+        },
+      ],
+      {
+        duration: 650,
+        easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+      }
+    );
+
+    animation.onfinish = () => {
+      flyingImage.remove();
+
+      const cartSound = new Audio("/sounds/cart-popp.mp3");
+      cartSound.volume = 0.70;
+      cartSound.play().catch(() => {});
+    };
   }
+
+  window.addEventListener(
+    "cart:item-added",
+    handleCartItemAdded
+  );
+
+  return () => {
+    window.removeEventListener(
+      "cart:item-added",
+      handleCartItemAdded
+    );
+  };
+}, []);
+
+  useEffect(() => {
+  function handleCartItemAdded() {
+    setCartBounce(true);
+
+    setTimeout(() => {
+      setCartBounce(false);
+    }, 600);
+  }
+
+  window.addEventListener(
+    "cart:item-added",
+    handleCartItemAdded
+  );
+
+  return () => {
+    window.removeEventListener(
+      "cart:item-added",
+      handleCartItemAdded
+    );
+  };
+}, []);
 
   return (
     <nav className="sticky top-0 z-50 border-b border-gray-800 bg-[#111111]/95 shadow-lg backdrop-blur-md">
@@ -92,9 +220,12 @@ export default function Navbar() {
         {/* Desktop Cart */}
         <div className="hidden md:flex">
           <Link
-            href="/cart"
-            className="rounded-full bg-white px-6 py-2.5 font-bold text-black shadow-md transition duration-300 hover:scale-105 hover:bg-gray-200"
-          >
+  href="/cart"
+  data-cart-button
+  className={`rounded-full bg-white px-6 py-2.5 font-bold text-black shadow-md transition duration-300 hover:scale-105 hover:bg-gray-200 ${
+    cartBounce ? "animate-bounce" : ""
+  }`}
+>
             🛒 السلة ({totalItems})
           </Link>
         </div>
@@ -104,10 +235,13 @@ export default function Navbar() {
 
           {/* Mobile Cart */}
           <Link
-            href="/cart"
-            aria-label="السلة"
-            className="flex min-h-11 items-center justify-center rounded-full bg-white px-4 text-sm font-bold text-black shadow-md transition active:scale-95"
-          >
+  href="/cart"
+  data-cart-button
+  aria-label="السلة"
+  className={`flex min-h-11 items-center justify-center rounded-full bg-white px-4 text-sm font-bold text-black shadow-md transition active:scale-95 ${
+    cartBounce ? "animate-bounce" : ""
+  }`}
+>
             🛒 {totalItems}
           </Link>
 
